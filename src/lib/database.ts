@@ -140,12 +140,18 @@ export interface PhaseControl {
   updated_at: string
 }
 
-// URL base da API - dinâmica para funcionar em desenvolvimento e produção
+// URL base da API - AUTO-DETECTA Hostinger
 const getApiBaseUrl = () => {
   // Se VITE_API_URL estiver definida, usar ela
   if (import.meta.env.VITE_API_URL) {
     console.log('🔍 Debug - getApiBaseUrl: Usando VITE_API_URL:', import.meta.env.VITE_API_URL);
     return import.meta.env.VITE_API_URL;
+  }
+  
+  // AUTO-DETECÇÃO: Se estiver no domínio conectadosdigital.com.br
+  if (typeof window !== 'undefined' && window.location.hostname === 'conectadosdigital.com.br') {
+    console.log('🔍 Debug - getApiBaseUrl: Detectado Hostinger - usando URL completa');
+    return 'https://conectadosdigital.com.br/api';
   }
   
   // Em desenvolvimento, usa o proxy (mesma porta do frontend)
@@ -154,7 +160,7 @@ const getApiBaseUrl = () => {
     return '/api';
   }
   
-  // Em produção, usar URL relativa
+  // Em produção local, usar URL relativa
   console.log('🔍 Debug - getApiBaseUrl: Usando URL relativa (PROD): /api');
   return '/api';
 };
