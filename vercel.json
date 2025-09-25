@@ -2,7 +2,7 @@
   "version": 2,
   "builds": [
     {
-      "src": "server.mjs",
+      "src": "api/**/*.js",
       "use": "@vercel/node"
     },
     {
@@ -16,7 +16,7 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "/server.mjs"
+      "dest": "/api/$1"
     },
     {
       "src": "/(.*)",
@@ -27,7 +27,7 @@
     "NODE_ENV": "production"
   },
   "functions": {
-    "server.mjs": {
+    "api/**/*.js": {
       "maxDuration": 30
     }
   }
