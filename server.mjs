@@ -12,8 +12,13 @@ const PORT = process.env.PORT || 3001;
 // Middleware
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
-    ? ['https://vereador-connect.vercel.app', 'https://vereador-connect-git-main.vercel.app']
-    : ['http://localhost:3000', 'http://localhost:5173'],
+    ? [
+        'https://vereador-connect.vercel.app', 
+        'https://vereador-connect-git-main.vercel.app',
+        'https://vereador-connect-git-master.vercel.app',
+        'https://*.vercel.app'
+      ]
+    : ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:8080'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']

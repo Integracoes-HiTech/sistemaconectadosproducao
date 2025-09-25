@@ -1,6 +1,14 @@
 // services/emailService.ts
 import emailjs from '@emailjs/browser'
 
+// URL base dinâmica para funcionar em desenvolvimento e produção
+const getBaseUrl = () => {
+  if (typeof window !== 'undefined') {
+    return window.location.origin;
+  }
+  return import.meta.env.DEV ? 'http://localhost:5173' : 'https://vereador-connect.vercel.app';
+};
+
 // Configurações do EmailJS - SUAS CREDENCIAIS REAIS
 const EMAILJS_SERVICE_ID = 'service_crb2xuj' // Seu Service ID
 const EMAILJS_TEMPLATE_ID = 'template_nw72q9c' // Seu Template ID original
@@ -116,7 +124,7 @@ export const generateCredentials = (userData: {
   return {
     username,
     password,
-    login_url: `${window.location.origin}/login`,
-    system_url: 'https://sistemaconectados.vercel.app/'
+    login_url: `${getBaseUrl()}/login`,
+    system_url: getBaseUrl()
   }
 }

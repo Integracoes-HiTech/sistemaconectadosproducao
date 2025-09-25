@@ -2,6 +2,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import { getSystemSettings, SystemSettings, PhaseControl } from '@/lib/database'
 
+// URL base da API - dinâmica para funcionar em desenvolvimento e produção
+const API_BASE_URL = import.meta.env.VITE_API_URL || 
+  (import.meta.env.DEV ? '${API_BASE_URL}' : '/api');
+
 export const useSystemSettings = () => {
   const [settings, setSettings] = useState<SystemSettings | null>(null)
   const [phases, setPhases] = useState<PhaseControl[]>([])
@@ -76,7 +80,7 @@ export const useSystemSettings = () => {
   const checkMemberLimit = async () => {
     try {
       // Buscar contagem atual de membros via API
-      const response = await fetch('http://localhost:3001/api/members');
+      const response = await fetch('${API_BASE_URL}/members');
       const result = await response.json();
       
       if (!result.success) {
@@ -108,7 +112,7 @@ export const useSystemSettings = () => {
     try {
       
       
-      const response = await fetch('http://localhost:3001/api/system-settings/update-phase', {
+      const response = await fetch('${API_BASE_URL}/system-settings/update-phase', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -148,7 +152,7 @@ export const useSystemSettings = () => {
   const updateMemberLinksType = async (type: 'members' | 'friends') => {
     try {
       
-      const response = await fetch('http://localhost:3001/api/system-settings/link-type', {
+      const response = await fetch('${API_BASE_URL}/system-settings/link-type', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

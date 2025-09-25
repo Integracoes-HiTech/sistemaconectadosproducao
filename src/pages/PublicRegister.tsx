@@ -9,6 +9,10 @@ import { User, Phone, Mail, Instagram, UserPlus, MapPin, Building, AlertCircle, 
 import { useUsers } from "@/hooks/useUsers";
 import { useUserLinks, UserLink } from "@/hooks/useUserLinks";
 
+// URL base da API - dinâmica para funcionar em desenvolvimento e produção
+const API_BASE_URL = import.meta.env.VITE_API_URL || 
+  (import.meta.env.DEV ? '${API_BASE_URL}' : '/api');
+
 // Interface estendida para incluir link_type
 interface ExtendedUserLink extends UserLink {
   link_type: 'members' | 'friends';
@@ -240,7 +244,7 @@ export default function PublicRegister() {
       // Atualizando contadores do membro após cadastro
       
       // Buscar o membro referrer via API
-      const membersResponse = await fetch(`http://localhost:3001/api/members?name=${referrerName}`);
+      const membersResponse = await fetch(`${API_BASE_URL}/members?name=${referrerName}`);
       const membersResult = await membersResponse.json();
 
         if (!membersResult.success) {
@@ -256,7 +260,7 @@ export default function PublicRegister() {
       }
 
       // Contar amigos ativos cadastrados por este membro via API
-      const friendsResponse = await fetch(`http://localhost:3001/api/friends?referrer=${referrerName}`);
+      const friendsResponse = await fetch(`${API_BASE_URL}/friends?referrer=${referrerName}`);
       const friendsResult = await friendsResponse.json();
 
       if (!friendsResult.success) {
@@ -272,7 +276,7 @@ export default function PublicRegister() {
       // Atualizar contracts_completed via API
       // Atualizando contratos após cadastro
       
-      const updateResponse = await fetch(`http://localhost:3001/api/members/${referrerMember.id}`, {
+      const updateResponse = await fetch(`${API_BASE_URL}/members/${referrerMember.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -314,7 +318,7 @@ export default function PublicRegister() {
       }
 
       // Atualizar status do membro via API
-      const statusResponse = await fetch(`http://localhost:3001/api/members/${memberId}`, {
+      const statusResponse = await fetch(`${API_BASE_URL}/members/${memberId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -345,7 +349,7 @@ export default function PublicRegister() {
       // Atualizando ranking de todos os membros
       
       // Buscar todos os membros ordenados por contratos via API
-      const membersResponse = await fetch('http://localhost:3001/api/members');
+      const membersResponse = await fetch('${API_BASE_URL}/members');
       const membersResult = await membersResponse.json();
 
       if (!membersResult.success) {
@@ -366,7 +370,7 @@ export default function PublicRegister() {
       // Atualizar ranking_position de cada membro via API
       for (let i = 0; i < sortedMembers.length; i++) {
         const member = sortedMembers[i];
-        const updateResponse = await fetch(`http://localhost:3001/api/members/${member.id}`, {
+        const updateResponse = await fetch(`${API_BASE_URL}/members/${member.id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -410,7 +414,7 @@ export default function PublicRegister() {
       }
 
       // Verificar duplicatas com membros existentes via API
-      const membersResponse = await fetch('http://localhost:3001/api/members');
+      const membersResponse = await fetch('${API_BASE_URL}/members');
       const membersResult = await membersResponse.json();
       
       if (!membersResult.success) {
@@ -419,7 +423,7 @@ export default function PublicRegister() {
       }
 
       // Verificar duplicatas com amigos existentes via API
-      const friendsResponse = await fetch('http://localhost:3001/api/friends');
+      const friendsResponse = await fetch('${API_BASE_URL}/friends');
       const friendsResult = await friendsResponse.json();
       
       if (!friendsResult.success) {
@@ -680,7 +684,7 @@ export default function PublicRegister() {
       const isFriendRegistration = linkData?.link_type === 'friends';
       
       // Verificar configuração atual do sistema via API
-      const settingsResponse = await fetch('http://localhost:3001/api/system-settings');
+      const settingsResponse = await fetch('${API_BASE_URL}/system-settings');
       const settingsResult = await settingsResponse.json();
       
       if (!settingsResult.success) {

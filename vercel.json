@@ -25,5 +25,10 @@
   ],
   "env": {
     "NODE_ENV": "production"
+  },
+  "functions": {
+    "server.mjs": {
+      "maxDuration": 30
+    }
   }
 }

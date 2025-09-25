@@ -2,6 +2,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import { getMembers, getMemberStats, getSystemSettings, Member, MemberStats, SystemSettings } from '@/lib/database'
 
+// URL base da API - dinâmica para funcionar em desenvolvimento e produção
+const API_BASE_URL = import.meta.env.VITE_API_URL || 
+  (import.meta.env.DEV ? '${API_BASE_URL}' : '/api');
+
 // Re-exportar tipos para uso em outros componentes
 export type { Member, MemberStats, SystemSettings }
 
@@ -126,7 +130,7 @@ export const useMembers = (referrer?: string) => {
 
   const addMember = async (memberData: Omit<Member, 'id' | 'created_at' | 'updated_at' | 'contracts_completed' | 'ranking_position' | 'ranking_status' | 'is_top_1500' | 'can_be_replaced'>) => {
     try {
-      const response = await fetch('http://localhost:3001/api/members', {
+      const response = await fetch('${API_BASE_URL}/members', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -154,7 +158,7 @@ export const useMembers = (referrer?: string) => {
 
   const softDeleteMember = async (memberId: string) => {
     try {
-      const response = await fetch(`http://localhost:3001/api/members/${memberId}`, {
+      const response = await fetch(`${API_BASE_URL}/members/${memberId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',

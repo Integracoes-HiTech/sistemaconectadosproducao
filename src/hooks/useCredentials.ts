@@ -1,8 +1,9 @@
 // hooks/useCredentials.ts
 import { useState } from 'react'
 
-// URL base da API
-const API_BASE_URL = 'http://localhost:3001/api';
+// URL base da API - dinâmica para funcionar em desenvolvimento e produção
+const API_BASE_URL = import.meta.env.VITE_API_URL || 
+  (import.meta.env.DEV ? 'http://localhost:3001/api' : '/api');
 
 // Função para fazer requisições à API
 const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
