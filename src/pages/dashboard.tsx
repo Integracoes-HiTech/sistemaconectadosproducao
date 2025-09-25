@@ -389,6 +389,23 @@ export default function Dashboard() {
   };
 
 
+  // Debug: Verificar estados de loading
+  console.log('🔍 Debug - Estados de loading:', {
+    usersLoading,
+    statsLoading,
+    reportsLoading,
+    linksLoading,
+    membersLoading,
+    settingsLoading,
+    members: members?.length || 0,
+    memberStats,
+    systemSettings,
+    isAdminUser,
+    referrerFilter,
+    user: user?.name,
+    userRole: user?.role
+  });
+
   // Loading state
   if (usersLoading || statsLoading || reportsLoading || linksLoading || membersLoading || settingsLoading) {
     return (
@@ -396,6 +413,9 @@ export default function Dashboard() {
         <div className="text-center">
           <div className="w-8 h-8 border-2 border-institutional-gold border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-white">Carregando dados do banco...</p>
+          <p className="text-white text-sm mt-2">
+            Loading: {usersLoading ? 'users ' : ''}{statsLoading ? 'stats ' : ''}{reportsLoading ? 'reports ' : ''}{linksLoading ? 'links ' : ''}{membersLoading ? 'members ' : ''}{settingsLoading ? 'settings ' : ''}
+          </p>
         </div>
       </div>
     );

@@ -8,12 +8,7 @@ const getApiBaseUrl = () => {
     return import.meta.env.VITE_API_URL;
   }
   
-  // Se estiver em desenvolvimento, usar localhost
-  if (import.meta.env.DEV) {
-    return 'http://localhost:3001/api';
-  }
-  
-  // Em produção, usar URL relativa
+  // Em desenvolvimento e produção, usar URL relativa (proxy do Vite)
   return '/api';
 };
 

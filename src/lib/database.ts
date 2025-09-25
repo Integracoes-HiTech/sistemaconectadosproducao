@@ -144,23 +144,30 @@ export interface PhaseControl {
 const getApiBaseUrl = () => {
   // Se VITE_API_URL estiver definida, usar ela
   if (import.meta.env.VITE_API_URL) {
+    console.log('🔍 Debug - getApiBaseUrl: Usando VITE_API_URL:', import.meta.env.VITE_API_URL);
     return import.meta.env.VITE_API_URL;
   }
   
-  // Se estiver em desenvolvimento, usar localhost
+  // Em desenvolvimento, usa o proxy (mesma porta do frontend)
   if (import.meta.env.DEV) {
-    return 'http://localhost:3001/api';
+    console.log('🔍 Debug - getApiBaseUrl: Usando URL relativa (DEV): /api');
+    return '/api';
   }
   
   // Em produção, usar URL relativa
+  console.log('🔍 Debug - getApiBaseUrl: Usando URL relativa (PROD): /api');
   return '/api';
 };
 
 const API_BASE_URL = getApiBaseUrl();
+console.log('🔍 Debug - API_BASE_URL definida como:', API_BASE_URL);
 
 // Função para fazer requisições à API
 const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+  const url = `${API_BASE_URL}${endpoint}`;
+  console.log('🔍 Debug - apiRequest: Fazendo requisição para:', url);
+  
+  const response = await fetch(url, {
     headers: {
       'Content-Type': 'application/json',
       ...options.headers,
@@ -168,11 +175,16 @@ const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
     ...options,
   });
 
+  console.log('🔍 Debug - apiRequest: Status da resposta:', response.status);
+
   if (!response.ok) {
+    console.error('❌ Debug - apiRequest: Erro HTTP:', response.status);
     throw new Error(`HTTP error! status: ${response.status}`);
   }
 
-  return await response.json();
+  const data = await response.json();
+  console.log('🔍 Debug - apiRequest: Dados recebidos:', data);
+  return data;
 };
 
 // Funções para comunicação com a API
@@ -249,23 +261,37 @@ export const getSystemSettings = async () => {
 
 // Função para buscar estatísticas via API
 export const getStats = async (referrer?: string) => {
-  const url = new URL('/stats', API_BASE_URL);
+  // Construir URL manualmente para evitar problemas com new URL()
+  let url = `${API_BASE_URL}/stats`;
+  const searchParams = new URLSearchParams();
+  
   if (referrer) {
-    url.searchParams.append('referrer', referrer);
+    searchParams.append('referrer', referrer);
   }
   
-  const result = await apiRequest(url.pathname + url.search);
+  if (searchParams.toString()) {
+    url += `?${searchParams.toString()}`;
+  }
+  
+  const result = await apiRequest(url.replace(API_BASE_URL, ''));
   return result;
 }
 
 // Função para buscar dados de relatórios via API
 export const getReports = async (referrer?: string) => {
-  const url = new URL('/reports', API_BASE_URL);
+  // Construir URL manualmente para evitar problemas com new URL()
+  let url = `${API_BASE_URL}/reports`;
+  const searchParams = new URLSearchParams();
+  
   if (referrer) {
-    url.searchParams.append('referrer', referrer);
+    searchParams.append('referrer', referrer);
   }
   
-  const result = await apiRequest(url.pathname + url.search);
+  if (searchParams.toString()) {
+    url += `?${searchParams.toString()}`;
+  }
+  
+  const result = await apiRequest(url.replace(API_BASE_URL, ''));
   return result;
 }
 
@@ -280,28 +306,45 @@ export const getMembers = async (params?: {
   page?: number;
   limit?: number;
 }) => {
-    const url = new URL('/members', API_BASE_URL);
+    console.log('🔍 Debug - getMembers: Parâmetros recebidos:', params);
+    
+    // Construir URL manualmente para evitar problemas com new URL()
+    let url = `${API_BASE_URL}/members`;
+    const searchParams = new URLSearchParams();
     
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
-          url.searchParams.append(key, value.toString());
+          searchParams.append(key, value.toString());
         }
       });
     }
     
-    const result = await apiRequest(url.pathname + url.search);
+    if (searchParams.toString()) {
+      url += `?${searchParams.toString()}`;
+    }
+    
+    console.log('🔍 Debug - getMembers: URL final:', url);
+    const result = await apiRequest(url.replace(API_BASE_URL, ''));
+    console.log('🔍 Debug - getMembers: Resultado da API:', result);
     return result;
 }
 
 // Função para buscar estatísticas de membros via API
 export const getMemberStats = async (referrer?: string) => {
-  const url = new URL('/member-stats', API_BASE_URL);
+  // Construir URL manualmente para evitar problemas com new URL()
+  let url = `${API_BASE_URL}/member-stats`;
+  const searchParams = new URLSearchParams();
+  
   if (referrer) {
-    url.searchParams.append('referrer', referrer);
+    searchParams.append('referrer', referrer);
   }
   
-  const result = await apiRequest(url.pathname + url.search);
+  if (searchParams.toString()) {
+    url += `?${searchParams.toString()}`;
+  }
+  
+  const result = await apiRequest(url.replace(API_BASE_URL, ''));
   return result;
 }
 
@@ -315,17 +358,23 @@ export const getFriends = async (params?: {
   page?: number;
   limit?: number;
 }) => {
-    const url = new URL('/friends', API_BASE_URL);
+    // Construir URL manualmente para evitar problemas com new URL()
+    let url = `${API_BASE_URL}/friends`;
+    const searchParams = new URLSearchParams();
     
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
-          url.searchParams.append(key, value.toString());
+          searchParams.append(key, value.toString());
         }
       });
     }
     
-    const result = await apiRequest(url.pathname + url.search);
+    if (searchParams.toString()) {
+      url += `?${searchParams.toString()}`;
+    }
+    
+    const result = await apiRequest(url.replace(API_BASE_URL, ''));
     return result;
 }
 
@@ -333,4 +382,30 @@ export const getFriends = async (params?: {
 export const getFriendStats = async () => {
   const result = await apiRequest('/friend-stats');
   return result;
+}
+
+// Funções para system_settings
+export const getSystemSettingsByKey = async (key: string) => {
+  try {
+    const result = await apiRequest(`/system-settings?key=${key}`);
+    return { data: result.data || [], error: null };
+  } catch (error) {
+    return { data: [], error: error };
+  }
+}
+
+export const insertSystemSetting = async (setting: {
+  setting_key: string;
+  setting_value: string;
+  description: string;
+}) => {
+  try {
+    const result = await apiRequest('/system-settings', {
+      method: 'POST',
+      body: JSON.stringify(setting),
+    });
+    return { data: result.data, error: null };
+  } catch (error) {
+    return { data: null, error: error };
+  }
 }

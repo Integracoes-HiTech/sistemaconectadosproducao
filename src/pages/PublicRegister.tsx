@@ -16,12 +16,7 @@ const getApiBaseUrl = () => {
     return import.meta.env.VITE_API_URL;
   }
   
-  // Se estiver em desenvolvimento, usar localhost
-  if (import.meta.env.DEV) {
-    return 'http://localhost:3001/api';
-  }
-  
-  // Em produção, usar URL relativa
+  // Em desenvolvimento e produção, usar URL relativa (proxy do Vite)
   return '/api';
 };
 
@@ -363,7 +358,7 @@ export default function PublicRegister() {
       // Atualizando ranking de todos os membros
       
       // Buscar todos os membros ordenados por contratos via API
-      const membersResponse = await fetch('${API_BASE_URL}/members');
+      const membersResponse = await fetch(`${API_BASE_URL}/members`);
       const membersResult = await membersResponse.json();
 
       if (!membersResult.success) {
@@ -428,7 +423,7 @@ export default function PublicRegister() {
       }
 
       // Verificar duplicatas com membros existentes via API
-      const membersResponse = await fetch('${API_BASE_URL}/members');
+      const membersResponse = await fetch(`${API_BASE_URL}/members`);
       const membersResult = await membersResponse.json();
       
       if (!membersResult.success) {
@@ -437,7 +432,7 @@ export default function PublicRegister() {
       }
 
       // Verificar duplicatas com amigos existentes via API
-      const friendsResponse = await fetch('${API_BASE_URL}/friends');
+      const friendsResponse = await fetch(`${API_BASE_URL}/friends`);
       const friendsResult = await friendsResponse.json();
       
       if (!friendsResult.success) {
@@ -698,7 +693,7 @@ export default function PublicRegister() {
       const isFriendRegistration = linkData?.link_type === 'friends';
       
       // Verificar configuração atual do sistema via API
-      const settingsResponse = await fetch('${API_BASE_URL}/system-settings');
+      const settingsResponse = await fetch(`${API_BASE_URL}/system-settings`);
       const settingsResult = await settingsResponse.json();
       
       if (!settingsResult.success) {

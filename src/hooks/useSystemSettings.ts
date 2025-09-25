@@ -9,12 +9,7 @@ const getApiBaseUrl = () => {
     return import.meta.env.VITE_API_URL;
   }
   
-  // Se estiver em desenvolvimento, usar localhost
-  if (import.meta.env.DEV) {
-    return 'http://localhost:3001/api';
-  }
-  
-  // Em produção, usar URL relativa
+  // Em desenvolvimento e produção, usar URL relativa (proxy do Vite)
   return '/api';
 };
 
@@ -94,7 +89,7 @@ export const useSystemSettings = () => {
   const checkMemberLimit = async () => {
     try {
       // Buscar contagem atual de membros via API
-      const response = await fetch('${API_BASE_URL}/members');
+      const response = await fetch(`${API_BASE_URL}/members`);
       const result = await response.json();
       
       if (!result.success) {
@@ -126,7 +121,7 @@ export const useSystemSettings = () => {
     try {
       
       
-      const response = await fetch('${API_BASE_URL}/system-settings/update-phase', {
+      const response = await fetch(`${API_BASE_URL}/system-settings/update-phase`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -166,12 +161,12 @@ export const useSystemSettings = () => {
   const updateMemberLinksType = async (type: 'members' | 'friends') => {
     try {
       
-      const response = await fetch('${API_BASE_URL}/system-settings/link-type', {
-        method: 'PUT',
+      const response = await fetch(`${API_BASE_URL}/update-link-type`, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ link_type: type })
+        body: JSON.stringify({ linkType: type })
       });
 
       const result = await response.json();
@@ -182,12 +177,10 @@ export const useSystemSettings = () => {
 
       
       // Atualizar configurações locais
-      if (result.settings) {
-        setSettings(prev => ({
-          ...prev,
-          member_links_type: type
-        }));
-      }
+      setSettings(prev => ({
+        ...prev,
+        member_links_type: type
+      }));
 
       return { 
         success: true, 

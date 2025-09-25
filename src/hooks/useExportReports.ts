@@ -2,7 +2,7 @@
 import { useCallback } from 'react'
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
-import * as XLSX from 'xlsx'
+import ExcelJS from 'exceljs'
 
 export const useExportReports = () => {
   // Função para formatar telefone para exportação
@@ -472,7 +472,7 @@ export const useExportReports = () => {
   }, [])
 
   // Exportar dados para Excel
-  const exportToExcel = useCallback((data: Record<string, unknown>[], filename: string = 'relatorio.xlsx', sheetName: string = 'Relatório') => {
+  const exportToExcel = useCallback(async (data: Record<string, unknown>[], filename: string = 'relatorio.xlsx', sheetName: string = 'Relatório') => {
     try {
       // Tentando exportar Excel
       
@@ -480,6 +480,8 @@ export const useExportReports = () => {
         throw new Error('Não é possível gerar um relatório sem dados')
       }
 
+      const workbook = new ExcelJS.Workbook();
+      
       // Para grandes volumes (>10.000 registros), usar processamento em chunks
       if (data.length > 10000) {
         // Processando grande volume de dados em chunks
@@ -491,24 +493,74 @@ export const useExportReports = () => {
           chunks.push(data.slice(i, i + chunkSize))
         }
         
-        const workbook = XLSX.utils.book_new()
-        
         chunks.forEach((chunk, index) => {
-          const worksheet = XLSX.utils.json_to_sheet(chunk)
-          const sheetNameChunk = chunks.length > 1 ? `${sheetName} - Parte ${index + 1}` : sheetName
-          XLSX.utils.book_append_sheet(workbook, worksheet, sheetNameChunk)
-        })
-        
-        // Excel criado com múltiplas abas, salvando arquivo
-        XLSX.writeFile(workbook, filename)
+          const worksheet = workbook.addWorksheet(chunks.length > 1 ? `${sheetName} - Parte ${index + 1}` : sheetName);
+          
+          // Adicionar cabeçalhos
+          if (chunk.length > 0) {
+            const headers = Object.keys(chunk[0]);
+            worksheet.addRow(headers);
+            
+            // Estilizar cabeçalhos
+            const headerRow = worksheet.getRow(1);
+            headerRow.font = { bold: true };
+            headerRow.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: 'FFE0E0E0' }
+            };
+            
+            // Adicionar dados
+            chunk.forEach(row => {
+              const values = headers.map(header => row[header] || '');
+              worksheet.addRow(values);
+            });
+            
+            // Auto-ajustar largura das colunas
+            worksheet.columns.forEach(column => {
+              column.width = 15;
+            });
+          }
+        });
       } else {
-        const worksheet = XLSX.utils.json_to_sheet(data)
-        const workbook = XLSX.utils.book_new()
-        XLSX.utils.book_append_sheet(workbook, worksheet, sheetName)
+        const worksheet = workbook.addWorksheet(sheetName);
         
-        // Excel criado, salvando arquivo
-        XLSX.writeFile(workbook, filename)
+        // Adicionar cabeçalhos
+        if (data.length > 0) {
+          const headers = Object.keys(data[0]);
+          worksheet.addRow(headers);
+          
+          // Estilizar cabeçalhos
+          const headerRow = worksheet.getRow(1);
+          headerRow.font = { bold: true };
+          headerRow.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFE0E0E0' }
+          };
+          
+          // Adicionar dados
+          data.forEach(row => {
+            const values = headers.map(header => row[header] || '');
+            worksheet.addRow(values);
+          });
+          
+          // Auto-ajustar largura das colunas
+          worksheet.columns.forEach(column => {
+            column.width = 15;
+          });
+        }
       }
+      
+      // Salvar arquivo
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      link.click();
+      window.URL.revokeObjectURL(url);
       
       // Excel exportado com sucesso
     } catch (error) {

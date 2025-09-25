@@ -8,12 +8,7 @@ const getApiBaseUrl = () => {
     return import.meta.env.VITE_API_URL;
   }
   
-  // Se estiver em desenvolvimento, usar localhost
-  if (import.meta.env.DEV) {
-    return 'http://localhost:3001/api';
-  }
-  
-  // Em produção, usar URL relativa
+  // Em desenvolvimento e produção, usar URL relativa (proxy do Vite)
   return '/api';
 };
 
@@ -75,10 +70,13 @@ export const useUserLinks = (userId?: string) => {
         return
       }
 
-      const url = new URL('/user-links', API_BASE_URL);
-      url.searchParams.append('userId', userId);
-
-      const result = await apiRequest(url.pathname + url.search);
+      // Construir URL manualmente para evitar problemas com new URL()
+      let url = `${API_BASE_URL}/user-links`;
+      const searchParams = new URLSearchParams();
+      searchParams.append('userId', userId);
+      url += `?${searchParams.toString()}`;
+      
+      const result = await apiRequest(url.replace(API_BASE_URL, ''));
 
       if (!result.success) {
         throw new Error(result.error || 'Erro ao buscar link');

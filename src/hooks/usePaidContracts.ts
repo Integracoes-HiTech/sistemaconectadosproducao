@@ -1,6 +1,5 @@
 // hooks/usePaidContracts.ts
 import { useState, useEffect, useCallback } from 'react'
-import { supabase } from '@/lib/supabase-temp'
 
 export interface PaidContract {
   id: string
@@ -49,23 +48,8 @@ export const usePaidContracts = (memberId?: string) => {
       setLoading(true)
       setError(null)
 
-      let query = supabase
-        .from('paid_contracts')
-        .select(`
-          *,
-          member_data:members(name, instagram)
-        `)
-        .order('created_at', { ascending: false })
-
-      if (memberId) {
-        query = query.eq('member_id', memberId)
-      }
-
-      const { data, error } = await query
-
-      if (error) throw error
-
-      setContracts(data || [])
+      // Funcionalidade de contratos pagos ainda não implementada no backend
+      setContracts([])
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao carregar contratos')
     } finally {
@@ -75,20 +59,15 @@ export const usePaidContracts = (memberId?: string) => {
 
   const fetchContractStats = useCallback(async () => {
     try {
-      const { data, error } = await supabase
-        .from('paid_contracts')
-        .select('contract_status, post_verified_1, post_verified_2')
-
-      if (error) throw error
-
+      // Funcionalidade de contratos pagos ainda não implementada no backend
       const stats: ContractStats = {
-        total_contracts: data?.length || 0,
-        completed_contracts: data?.filter(c => c.contract_status === 'Completo').length || 0,
-        pending_contracts: data?.filter(c => c.contract_status === 'Pendente').length || 0,
-        active_contracts: data?.filter(c => c.contract_status === 'Ativo').length || 0,
-        cancelled_contracts: data?.filter(c => c.contract_status === 'Cancelado').length || 0,
-        verified_posts: data?.filter(c => c.post_verified_1 && c.post_verified_2).length || 0,
-        pending_verification: data?.filter(c => !c.post_verified_1 || !c.post_verified_2).length || 0
+        total_contracts: 0,
+        completed_contracts: 0,
+        pending_contracts: 0,
+        active_contracts: 0,
+        cancelled_contracts: 0,
+        verified_posts: 0,
+        pending_verification: 0
       }
 
       setContractStats(stats)
@@ -99,48 +78,15 @@ export const usePaidContracts = (memberId?: string) => {
 
   const addContract = async (contractData: Omit<PaidContract, 'id' | 'created_at' | 'updated_at' | 'member_data'>) => {
     try {
-      // Verificar se a fase de contratos pagos está ativa
-      const { data: canRegister, error: canRegisterError } = await supabase
-        .rpc('can_register_paid_contract')
-
-      if (canRegisterError) throw canRegisterError
-
-      if (!canRegister) {
-        throw new Error('A fase de contratos pagos ainda não está ativa. Aguarde até julho de 2025.')
-      }
-
-      // Verificar se o membro já tem 15 contratos
-      const { data: existingContracts, error: countError } = await supabase
-        .from('paid_contracts')
-        .select('id')
-        .eq('member_id', contractData.member_id)
-        .in('contract_status', ['Pendente', 'Ativo', 'Completo'])
-
-      if (countError) throw countError
-
-      if (existingContracts && existingContracts.length >= 15) {
-        throw new Error('Este membro já atingiu o limite de 15 contratos pagos.')
-      }
+      // Funcionalidade de contratos pagos ainda não implementada no backend
+      throw new Error('A fase de contratos pagos ainda não está ativa. Funcionalidade em desenvolvimento.')
 
       // Gerar hashtags únicas
       const hashtag1 = `#Conectados${contractData.member_id.slice(-6)}${contractData.couple_instagram_1.slice(-3)}`
       const hashtag2 = `#Conectados${contractData.member_id.slice(-6)}${contractData.couple_instagram_2.slice(-3)}`
 
-      const { data, error } = await supabase
-        .from('paid_contracts')
-        .insert([{
-          ...contractData,
-          hashtag_1: hashtag1,
-          hashtag_2: hashtag2,
-          post_verified_1: false,
-          post_verified_2: false
-        }])
-        .select()
-        .single()
-
-      if (error) throw error
-
-      return { success: true, data }
+      // Funcionalidade de contratos pagos ainda não implementada no backend
+      throw new Error('Funcionalidade de contratos pagos ainda não implementada')
     } catch (err) {
       return { 
         success: false, 
@@ -157,16 +103,8 @@ export const usePaidContracts = (memberId?: string) => {
         updateData.completion_date = new Date().toISOString().split('T')[0]
       }
 
-      const { data, error } = await supabase
-        .from('paid_contracts')
-        .update(updateData)
-        .eq('id', contractId)
-        .select()
-        .single()
-
-      if (error) throw error
-
-      return { success: true, data }
+      // Funcionalidade de contratos pagos ainda não implementada no backend
+      throw new Error('Funcionalidade de contratos pagos ainda não implementada')
     } catch (err) {
       return { 
         success: false, 
@@ -182,30 +120,8 @@ export const usePaidContracts = (memberId?: string) => {
         [`post_verified_${personNumber}`]: true
       }
 
-      const { data, error } = await supabase
-        .from('paid_contracts')
-        .update(updateData)
-        .eq('id', contractId)
-        .select()
-        .single()
-
-      if (error) throw error
-
-      // Salvar também na tabela de posts do Instagram
-      const { error: postError } = await supabase
-        .from('instagram_posts')
-        .insert([{
-          contract_id: contractId,
-          person_number: personNumber,
-          post_url: postUrl,
-          hashtag: personNumber === 1 ? data.hashtag_1 : data.hashtag_2,
-          post_date: new Date().toISOString().split('T')[0],
-          verified: true
-        }])
-
-      if (postError) throw postError
-
-      return { success: true, data }
+      // Funcionalidade de contratos pagos ainda não implementada no backend
+      throw new Error('Funcionalidade de contratos pagos ainda não implementada')
     } catch (err) {
       return { 
         success: false, 

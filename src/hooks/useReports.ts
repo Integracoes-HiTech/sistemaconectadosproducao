@@ -8,12 +8,7 @@ const getApiBaseUrl = () => {
     return import.meta.env.VITE_API_URL;
   }
   
-  // Se estiver em desenvolvimento, usar localhost
-  if (import.meta.env.DEV) {
-    return 'http://localhost:3001/api';
-  }
-  
-  // Em produção, usar URL relativa
+  // Em desenvolvimento e produção, usar URL relativa (proxy do Vite)
   return '/api';
 };
 
@@ -70,23 +65,34 @@ export const useReports = (referrer?: string) => {
 
   const fetchReportData = useCallback(async () => {
     try {
+      console.log('🔍 Debug - useReports: Iniciando busca de reports com referrer:', referrer);
       setLoading(true)
       setError(null)
 
-      // Construir URL com parâmetros
-      const url = new URL('/reports', API_BASE_URL);
+      // Construir URL manualmente para evitar problemas com new URL()
+      let url = `${API_BASE_URL}/reports`;
+      const searchParams = new URLSearchParams();
+      
       if (referrer) {
-        url.searchParams.append('referrer', referrer);
+        searchParams.append('referrer', referrer);
       }
-
-      const result = await apiRequest(url.pathname + url.search);
+      
+      if (searchParams.toString()) {
+        url += `?${searchParams.toString()}`;
+      }
+      
+      console.log('🔍 Debug - useReports: URL final:', url);
+      const result = await apiRequest(url.replace(API_BASE_URL, ''));
+      console.log('🔍 Debug - useReports: Resultado da API:', result);
 
       if (!result.success) {
         throw new Error(result.error || 'Erro ao buscar dados dos relatórios');
       }
 
+      console.log('🔍 Debug - useReports: Reports encontrados:', result.reportData);
       setReportData(result.reportData);
     } catch (err) {
+      console.error('❌ Debug - useReports: Erro:', err);
       setError(err instanceof Error ? err.message : 'Erro ao carregar dados dos relatórios')
     } finally {
       setLoading(false)

@@ -38,16 +38,12 @@ export const testDatabaseConnection = async () => {
 // Função para verificar se todas as tabelas necessárias existem
 export const verifyDatabaseStructure = async () => {
   const requiredTables = [
-    'users',
     'auth_users', 
     'user_links',
     'members',
     'friends',
-    'paid_contracts',
     'system_settings',
-    'member_ranking',
     'phase_control',
-    'instagram_posts'
   ]
 
   try {

@@ -9,12 +9,7 @@ const getApiBaseUrl = () => {
     return import.meta.env.VITE_API_URL;
   }
   
-  // Se estiver em desenvolvimento, usar localhost
-  if (import.meta.env.DEV) {
-    return 'http://localhost:3001/api';
-  }
-  
-  // Em produção, usar URL relativa
+  // Em desenvolvimento e produção, usar URL relativa (proxy do Vite)
   return '/api';
 };
 
@@ -70,13 +65,19 @@ export const useStats = (referrer?: string) => {
       setLoading(true)
       setError(null)
 
-      // Construir URL com parâmetros
-      const url = new URL('/stats', API_BASE_URL);
+      // Construir URL manualmente para evitar problemas com new URL()
+      let url = `${API_BASE_URL}/stats`;
+      const searchParams = new URLSearchParams();
+      
       if (referrer) {
-        url.searchParams.append('referrer', referrer);
+        searchParams.append('referrer', referrer);
       }
-
-      const result = await apiRequest(url.pathname + url.search);
+      
+      if (searchParams.toString()) {
+        url += `?${searchParams.toString()}`;
+      }
+      
+      const result = await apiRequest(url.replace(API_BASE_URL, ''));
 
       if (!result.success) {
         throw new Error(result.error || 'Erro ao buscar estatísticas');

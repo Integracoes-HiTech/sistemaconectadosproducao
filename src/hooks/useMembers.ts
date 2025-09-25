@@ -9,12 +9,7 @@ const getApiBaseUrl = () => {
     return import.meta.env.VITE_API_URL;
   }
   
-  // Se estiver em desenvolvimento, usar localhost
-  if (import.meta.env.DEV) {
-    return 'http://localhost:3001/api';
-  }
-  
-  // Em produção, usar URL relativa
+  // Em desenvolvimento e produção, usar URL relativa (proxy do Vite)
   return '/api';
 };
 
@@ -32,17 +27,25 @@ export const useMembers = (referrer?: string) => {
 
   const fetchMembers = useCallback(async () => {
     try {
+      console.log('🔍 Debug - useMembers: Iniciando busca de membros com referrer:', referrer);
       setLoading(true)
       setError(null)
 
-      const result = await getMembers({ referrer });
+      // Se referrer for undefined, não passar o parâmetro
+      const params = referrer ? { referrer } : {};
+      console.log('🔍 Debug - useMembers: Parâmetros que serão enviados:', params);
+      
+      const result = await getMembers(params);
+      console.log('🔍 Debug - useMembers: Resultado da API:', result);
       
       if (!result.success) {
         throw new Error(result.error || 'Erro ao buscar membros');
       }
 
+      console.log('🔍 Debug - useMembers: Membros encontrados:', result.members?.length || 0);
       setMembers(result.members || []);
     } catch (err) {
+      console.error('❌ Debug - useMembers: Erro:', err);
       setError(err instanceof Error ? err.message : 'Erro ao carregar membros')
     } finally {
       setLoading(false)
@@ -144,7 +147,7 @@ export const useMembers = (referrer?: string) => {
 
   const addMember = async (memberData: Omit<Member, 'id' | 'created_at' | 'updated_at' | 'contracts_completed' | 'ranking_position' | 'ranking_status' | 'is_top_1500' | 'can_be_replaced'>) => {
     try {
-      const response = await fetch('${API_BASE_URL}/members', {
+      const response = await fetch(`${API_BASE_URL}/members`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

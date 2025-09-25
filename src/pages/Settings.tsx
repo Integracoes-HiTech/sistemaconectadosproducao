@@ -7,7 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useSystemSettings } from '@/hooks/useSystemSettings';
 import { useToast } from '@/hooks/use-toast';
 import { Users, UserCheck, ArrowLeft, RefreshCw, AlertTriangle } from 'lucide-react';
-import { supabase } from '@/lib/supabase-temp'
+import { getSystemSettingsByKey, insertSystemSetting } from '@/lib/database';
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -35,23 +35,18 @@ export default function Settings() {
   useEffect(() => {
     const ensureInitialSettings = async () => {
       try {
-        const { data: existingSettings, error: fetchError } = await supabase
-          .from('system_settings')
-          .select('*')
-          .eq('setting_key', 'member_links_type');
+        const { data: existingSettings, error: fetchError } = await getSystemSettingsByKey('member_links_type');
 
         if (fetchError) throw fetchError;
 
         if (!existingSettings || existingSettings.length === 0) {
           // Criando configuração inicial
           
-          const { error: insertError } = await supabase
-            .from('system_settings')
-            .insert([{
-              setting_key: 'member_links_type',
-              setting_value: 'members',
-              description: 'Tipo de links gerados pelos membros: members (novos membros) ou friends (amigos)'
-            }]);
+          const { error: insertError } = await insertSystemSetting({
+            setting_key: 'member_links_type',
+            setting_value: 'members',
+            description: 'Tipo de links gerados pelos membros: members (novos membros) ou friends (amigos)'
+          });
 
           if (insertError) throw insertError;
           

@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Input } from './input';
 import { Check, ChevronDown, Search } from 'lucide-react';
-import { supabase } from '@/lib/supabase-temp';
 import { useToast } from '../../hooks/use-toast';
 
 interface AutocompleteProps {
@@ -70,44 +69,39 @@ export const Autocomplete = React.forwardRef<AutocompleteRef, AutocompleteProps>
       let suggestions: Suggestion[] = [];
 
       if (type === 'city') {
-        const { data, error } = await supabase
-          .from('cities')
-          .select('id, name')
-          .eq('state', 'GO')
-          .ilike('name', `%${query}%`)
-          .order('name')
-          .limit(10);
-
-        if (!error && data) {
-          suggestions = data.map((item: { id: string; name: string }) => ({
-            id: item.id,
-            name: item.name
+        // Lista simplificada de cidades de Goiás para demonstração
+        const cities = [
+          'Goiânia', 'Aparecida de Goiânia', 'Anápolis', 'Rio Verde', 'Luziânia',
+          'Águas Lindas de Goiás', 'Valparaíso de Goiás', 'Trindade', 'Formosa',
+          'Novo Gama', 'Senador Canedo', 'Catalão', 'Jataí', 'Planaltina',
+          'Caldas Novas', 'Itumbiara', 'Cidade Ocidental', 'Mineiros'
+        ];
+        
+        suggestions = cities
+          .filter(city => city.toLowerCase().includes(query.toLowerCase()))
+          .slice(0, 10)
+          .map((city, index) => ({
+            id: index.toString(),
+            name: city
           }));
-        }
 
       } else if (type === 'sector' && cityValue) {
-        // Buscando setores para cidade
-        const { data, error } = await supabase
-          .from('sectors')
-          .select(`
-            id, 
-            name,
-            cities!inner(name)
-          `)
-          .ilike('name', `%${query}%`)
-          .ilike('cities.name', `%${cityValue}%`)
-          .order('name')
-          .limit(10);
-
-        // Resultado da busca de setores
-        if (!error && data) {
-          suggestions = data.map((item: { id: string; name: string }) => ({
-            id: item.id,
-            name: item.name
+        // Lista simplificada de setores para demonstração
+        const sectors = [
+          'Centro', 'Setor Oeste', 'Setor Sul', 'Setor Norte', 'Jardim Goiás',
+          'Setor Bueno', 'Setor Marista', 'Vila Nova', 'Campinas', 'Setor Pedro Ludovico'
+        ];
+        
+        suggestions = sectors
+          .filter(sector => sector.toLowerCase().includes(query.toLowerCase()))
+          .slice(0, 10)
+          .map((sector, index) => ({
+            id: index.toString(),
+            name: sector
           }));
-        }
       } else if (type === 'sector' && !cityValue) {
         // Tentando buscar setores sem cidade definida
+        suggestions = [];
       }
 
       setSuggestions(suggestions);

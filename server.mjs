@@ -23,6 +23,12 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
+// Middleware para log de requisições
+app.use((req, res, next) => {
+  console.log(`🔍 ${req.method} ${req.url} - Origin: ${req.headers.origin}`);
+  next();
+});
 app.use(express.json());
 
 // Configuração do banco MySQL
@@ -33,9 +39,6 @@ const dbConfig = {
   database: process.env.VITE_MYSQL_DATABASE || 'u877021150_conectados',
   charset: 'utf8mb4',
   timezone: 'Z',
-  acquireTimeout: 60000,
-  timeout: 60000,
-  reconnect: true,
   connectionLimit: 10
 };
 
@@ -63,10 +66,14 @@ const executeQuery = async (query, params = []) => {
 // Função para executar uma única query
 const executeSingleQuery = async (query, params = []) => {
   try {
+    console.log(`🔍 Debug - executeSingleQuery: ${query}`);
+    console.log(`🔍 Debug - Parâmetros:`, params);
     const connection = await getConnection();
     const [rows] = await connection.execute(query, params);
+    console.log(`🔍 Debug - Resultado:`, rows.length > 0 ? 'Encontrado' : 'Não encontrado');
     return rows.length > 0 ? rows[0] : null;
   } catch (error) {
+    console.error(`❌ Erro em executeSingleQuery:`, error);
     throw error;
   }
 };
@@ -79,20 +86,37 @@ const updateData = async (table, data, where) => {
     const whereClause = Object.keys(where).map(key => `${key} = ?`).join(' AND ');
     const values = [...Object.values(data), ...Object.values(where)];
     const query = `UPDATE ${table} SET ${setClause} WHERE ${whereClause}`;
+    console.log(`🔍 Debug - Executando query: ${query}`);
+    console.log(`🔍 Debug - Valores:`, values);
     await connection.execute(query, values);
   } catch (error) {
+    console.error(`❌ Erro em updateData para tabela ${table}:`, error);
     throw error;
   }
 };
 
-// Rota para testar conexão
-app.get('/api/test-connection', async (req, res) => {
+// Rota para testar tabela auth_users
+app.get('/api/test-auth-users', async (req, res) => {
   try {
-    const connection = await getConnection();
-    await connection.execute('SELECT 1');
-    res.json({ success: true, message: 'Conexão com MySQL estabelecida!' });
+    console.log('🔍 Testando tabela auth_users...');
+    const result = await executeQuery('SELECT COUNT(*) as count FROM auth_users');
+    console.log('✅ Tabela auth_users existe:', result);
+    
+    const users = await executeQuery('SELECT id, username, name, role FROM auth_users LIMIT 5');
+    console.log('✅ Usuários encontrados:', users);
+    
+    res.json({
+      success: true,
+      message: 'Tabela auth_users funcionando',
+      count: result[0].count,
+      users: users
+    });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    console.error('❌ Erro ao testar auth_users:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
   }
 });
 
@@ -100,6 +124,7 @@ app.get('/api/test-connection', async (req, res) => {
 app.post('/api/login', async (req, res) => {
   try {
     const { username, password } = req.body;
+    console.log(`🔍 Debug - Login attempt: username=${username}, password=${password ? '***' : 'empty'}`);
 
     if (!username || !password) {
       return res.status(400).json({ 
@@ -110,12 +135,16 @@ app.post('/api/login', async (req, res) => {
 
     // Normalizar username
     const normalizedUsername = username.replace('@', '').toLowerCase();
+    console.log(`🔍 Debug - Normalized username: ${normalizedUsername}`);
 
     // Buscar usuário na tabela auth_users
+    console.log(`🔍 Debug - Executando query: SELECT * FROM auth_users WHERE username = ? AND password = ?`);
+    
     const user = await executeSingleQuery(
-      'SELECT * FROM auth_users WHERE username = ? AND password = ?',
+      'SELECT id, username, name, role, full_name, instagram, phone, is_active, created_at, updated_at FROM auth_users WHERE username = ? AND password = ?',
       [normalizedUsername, password]
     );
+    console.log(`🔍 Debug - Resultado da query:`, user ? 'Usuário encontrado' : 'Usuário não encontrado');
 
     if (!user) {
       return res.status(401).json({ 
@@ -125,18 +154,25 @@ app.post('/api/login', async (req, res) => {
     }
 
     // Ativar usuário após login bem-sucedido
+    console.log(`🔍 Debug - Ativando usuário ID: ${user.id}`);
+    // Temporariamente comentado para debug
+    /*
     await updateData('auth_users', {
       is_active: true,
       last_login: new Date().toISOString()
     }, { id: user.id });
+    */
 
-    // Atualizar status do usuário na tabela users para "Ativo" (se tiver instagram)
+    // Atualizar status do usuário na tabela members para "Ativo" (se tiver instagram)
+    // Temporariamente comentado para debug
+    /*
     if (user.instagram) {
-      await updateData('users', {
+      await updateData('members', {
         status: 'Ativo',
         updated_at: new Date().toISOString()
       }, { instagram: user.instagram });
     }
+    */
 
     const userData = {
       id: user.id,
@@ -152,6 +188,7 @@ app.post('/api/login', async (req, res) => {
       updated_at: user.updated_at
     };
 
+    console.log(`🔍 Debug - Login bem-sucedido para: ${user.name}`);
     res.json({ 
       success: true, 
       user: userData,
@@ -159,6 +196,7 @@ app.post('/api/login', async (req, res) => {
     });
 
   } catch (error) {
+    console.error(`❌ Erro no login:`, error);
     res.status(500).json({
       success: false,
       error: error.message
@@ -794,6 +832,222 @@ app.get('/api/friend-stats', async (req, res) => {
   }
 });
 
+// Rota de teste para verificar se o servidor está funcionando
+app.get('/api/test', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Servidor funcionando!',
+    timestamp: new Date().toISOString(),
+    port: PORT,
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
+
+// Rota para verificar views do banco de dados
+app.get('/api/test-views', async (req, res) => {
+  try {
+    console.log('🔍 Testando views do banco de dados...');
+    
+    const results = {
+      success: true,
+      message: 'Views testadas',
+      errors: [],
+      definitions: {},
+      tables: {}
+    };
+    
+    // Verificar estrutura das tabelas principais
+    const membersColumns = await executeQuery('DESCRIBE members');
+    console.log('✅ Colunas da tabela members:', membersColumns);
+    results.tables.members = membersColumns;
+    
+    const authUsersColumns = await executeQuery('DESCRIBE auth_users');
+    console.log('✅ Colunas da tabela auth_users:', authUsersColumns);
+    results.tables.auth_users = authUsersColumns;
+    
+    // Verificar se tabela paid_contracts existe
+    try {
+      const paidContractsColumns = await executeQuery('DESCRIBE paid_contracts');
+      console.log('✅ Colunas da tabela paid_contracts:', paidContractsColumns);
+      results.tables.paid_contracts = paidContractsColumns;
+    } catch (error) {
+      console.error('❌ Tabela paid_contracts não existe:', error.message);
+      results.errors.push({
+        table: 'paid_contracts',
+        error: error.message
+      });
+    }
+    
+    // Testar view v_member_ranking
+    try {
+      const memberRanking = await executeQuery('SELECT * FROM v_member_ranking LIMIT 5');
+      console.log('✅ View v_member_ranking funcionando:', memberRanking);
+    } catch (error) {
+      console.error('❌ Erro na view v_member_ranking:', error.message);
+      results.errors.push({
+        view: 'v_member_ranking',
+        error: error.message
+      });
+    }
+    
+    // Testar view v_system_status
+    try {
+      const systemStatus = await executeQuery('SELECT * FROM v_system_status LIMIT 5');
+      console.log('✅ View v_system_status funcionando:', systemStatus);
+    } catch (error) {
+      console.error('❌ Erro na view v_system_status:', error.message);
+      results.errors.push({
+        view: 'v_system_status',
+        error: error.message
+      });
+    }
+    
+    // Verificar definição das views
+    try {
+      const memberRankingDef = await executeQuery('SHOW CREATE VIEW v_member_ranking');
+      console.log('✅ Definição da view v_member_ranking:', memberRankingDef);
+      results.definitions.v_member_ranking = memberRankingDef[0]['Create View'];
+    } catch (error) {
+      console.error('❌ Erro ao obter definição da view v_member_ranking:', error.message);
+      results.errors.push({
+        view: 'v_member_ranking_definition',
+        error: error.message
+      });
+    }
+    
+    try {
+      const systemStatusDef = await executeQuery('SHOW CREATE VIEW v_system_status');
+      console.log('✅ Definição da view v_system_status:', systemStatusDef);
+      results.definitions.v_system_status = systemStatusDef[0]['Create View'];
+    } catch (error) {
+      console.error('❌ Erro ao obter definição da view v_system_status:', error.message);
+      results.errors.push({
+        view: 'v_system_status_definition',
+        error: error.message
+      });
+    }
+    
+    res.json(results);
+  } catch (error) {
+    console.error('❌ Erro ao testar views:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// Rota para corrigir views do banco de dados
+app.post('/api/fix-views', async (req, res) => {
+  try {
+    console.log('🔧 Corrigindo views do banco de dados...');
+    
+    const results = {
+      success: true,
+      message: 'Views corrigidas',
+      operations: []
+    };
+    
+    // 1. Corrigir view v_member_ranking (remover dependência de paid_contracts)
+    try {
+      console.log('🔧 Corrigindo view v_member_ranking...');
+      
+      // Dropar a view existente
+      await executeQuery('DROP VIEW IF EXISTS v_member_ranking');
+      console.log('✅ View v_member_ranking removida');
+      
+      // Criar nova view sem dependência de paid_contracts
+      const createMemberRankingView = `
+        CREATE VIEW v_member_ranking AS
+        SELECT 
+          m.id,
+          m.name,
+          m.instagram,
+          m.city,
+          m.sector,
+          m.contracts_completed,
+          m.ranking_position,
+          m.ranking_status,
+          m.is_top_1500,
+          m.can_be_replaced,
+          m.contracts_completed as total_contracts,
+          m.contracts_completed as completed_contracts,
+          0 as pending_contracts
+        FROM members m
+        WHERE m.status = 'Ativo'
+        ORDER BY m.ranking_position
+      `;
+      
+      await executeQuery(createMemberRankingView);
+      console.log('✅ View v_member_ranking criada com sucesso');
+      
+      results.operations.push({
+        operation: 'fix_v_member_ranking',
+        status: 'success',
+        message: 'View corrigida removendo dependência de paid_contracts'
+      });
+      
+    } catch (error) {
+      console.error('❌ Erro ao corrigir v_member_ranking:', error.message);
+      results.operations.push({
+        operation: 'fix_v_member_ranking',
+        status: 'error',
+        message: error.message
+      });
+    }
+    
+    // 2. Criar view v_system_status
+    try {
+      console.log('🔧 Criando view v_system_status...');
+      
+      const createSystemStatusView = `
+        CREATE VIEW v_system_status AS
+        SELECT 
+          'members' as table_name,
+          COUNT(*) as total_records,
+          COUNT(CASE WHEN status = 'Ativo' THEN 1 END) as active_records,
+          COUNT(CASE WHEN status = 'Inativo' THEN 1 END) as inactive_records
+        FROM members
+        WHERE deleted_at IS NULL
+        
+        UNION ALL
+        
+        SELECT 
+          'auth_users' as table_name,
+          COUNT(*) as total_records,
+          COUNT(CASE WHEN is_active = 1 THEN 1 END) as active_records,
+          COUNT(CASE WHEN is_active = 0 THEN 1 END) as inactive_records
+        FROM auth_users
+      `;
+      
+      await executeQuery(createSystemStatusView);
+      console.log('✅ View v_system_status criada com sucesso');
+      
+      results.operations.push({
+        operation: 'create_v_system_status',
+        status: 'success',
+        message: 'View v_system_status criada com sucesso'
+      });
+      
+    } catch (error) {
+      console.error('❌ Erro ao criar v_system_status:', error.message);
+      results.operations.push({
+        operation: 'create_v_system_status',
+        status: 'error',
+        message: error.message
+      });
+    }
+    
+    res.json(results);
+  } catch (error) {
+    console.error('❌ Erro ao corrigir views:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 // Rota para gerar link de cadastro usando função MySQL (equivalente ao Supabase)
 app.post('/api/generate-link', async (req, res) => {
   try {
@@ -814,7 +1068,7 @@ app.post('/api/generate-link', async (req, res) => {
     // Buscar configurações do sistema para determinar o tipo de link
     const settings = await executeQuery('SELECT setting_key, setting_value FROM system_settings');
     const settingsData = {
-      member_links_type: 'members'
+      member_links_type: 'friends' // Valor padrão: friends
     };
 
     settings.forEach(item => {
@@ -822,6 +1076,9 @@ app.post('/api/generate-link', async (req, res) => {
         settingsData.member_links_type = item.setting_value;
       }
     });
+
+    console.log('🔍 Debug - Configurações lidas do banco:', settings);
+    console.log('🔍 Debug - Configurações finais:', settingsData);
 
     // Verificar se o usuário é Admin ou Felipe Admin - eles sempre cadastram membros
     const userResult = await executeQuery(
@@ -889,6 +1146,38 @@ app.post('/api/generate-link', async (req, res) => {
   }
 });
 
+// Rota para ativar usuário auth_users
+app.put('/api/auth-users/:id/activate', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        error: 'ID do usuário é obrigatório'
+      });
+    }
+
+    // Ativar usuário
+    await executeQuery(
+      'UPDATE auth_users SET is_active = true, updated_at = ? WHERE id = ?',
+      [new Date().toISOString(), id]
+    );
+
+    res.json({
+      success: true,
+      message: 'Usuário ativado com sucesso'
+    });
+
+  } catch (error) {
+    console.error('❌ Erro ao ativar usuário:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 // Rota para buscar links do usuário
 app.get('/api/user-links', async (req, res) => {
   try {
@@ -924,14 +1213,21 @@ app.get('/api/user-links', async (req, res) => {
 // Rota para alterar tipo de link (apenas administradores)
 app.post('/api/update-link-type', async (req, res) => {
   try {
+    console.log('🔍 Debug - update-link-type chamado');
+    console.log('🔍 Debug - req.body:', req.body);
+    console.log('🔍 Debug - Content-Type:', req.headers['content-type']);
+    
     const { linkType } = req.body;
 
     if (!linkType || !['members', 'friends'].includes(linkType)) {
+      console.log('❌ Debug - Tipo de link inválido:', linkType);
       return res.status(400).json({
         success: false,
         error: 'Tipo de link deve ser "members" ou "friends"'
       });
     }
+
+    console.log('🔍 Debug - Atualizando tipo de link para:', linkType);
 
     // Atualizar configuração do sistema
     await executeQuery(
@@ -939,12 +1235,54 @@ app.post('/api/update-link-type', async (req, res) => {
       [linkType]
     );
 
-    res.json({
+    // Atualizar links existentes dos membros (não administradores)
+    console.log('🔍 Debug - Atualizando links existentes dos membros...');
+    
+    // Buscar todos os usuários que não são administradores
+    console.log('🔍 Debug - Buscando usuários não-administradores...');
+    const nonAdminUsers = await executeQuery(`
+      SELECT au.id, au.role
+      FROM auth_users au 
+      WHERE au.role NOT IN ('Administrador', 'Felipe Admin')
+    `);
+    
+    console.log('🔍 Debug - Usuários não-administradores encontrados:', nonAdminUsers);
+
+    let updatedLinksCount = 0;
+    
+    if (nonAdminUsers.length > 0) {
+      // Atualizar links dos usuários não-administradores
+      const userIds = nonAdminUsers.map(user => user.id);
+      const placeholders = userIds.map(() => '?').join(',');
+      
+      console.log('🔍 Debug - IDs dos usuários para atualizar:', userIds);
+      console.log('🔍 Debug - Query de atualização:', `UPDATE user_links SET link_type = ?, updated_at = NOW() WHERE user_id IN (${placeholders})`);
+      
+      const updateResult = await executeQuery(
+        `UPDATE user_links 
+         SET link_type = ?, updated_at = NOW() 
+         WHERE user_id IN (${placeholders})`,
+        [linkType, ...userIds]
+      );
+      
+      updatedLinksCount = updateResult.affectedRows || 0;
+      console.log('🔍 Debug - Resultado da atualização:', updateResult);
+      console.log('🔍 Debug - Links atualizados:', updatedLinksCount);
+    } else {
+      console.log('🔍 Debug - Nenhum usuário não-administrador encontrado');
+    }
+
+    const response = {
       success: true,
-      message: `Tipo de link alterado para: ${linkType === 'members' ? 'Novos Membros' : 'Amigos'}`
-    });
+      message: `Tipo de link alterado para: ${linkType === 'members' ? 'Novos Membros' : 'Amigos'}. ${updatedLinksCount} links de usuários "Membro" foram atualizados. Links de Administradores e Felipe Admin mantidos.`,
+      updated_links_count: updatedLinksCount
+    };
+
+    console.log('🔍 Debug - Resposta enviada:', response);
+    res.json(response);
 
   } catch (error) {
+    console.log('❌ Debug - Erro em update-link-type:', error);
     res.status(500).json({
       success: false,
       error: error.message
@@ -1032,6 +1370,10 @@ app.put('/api/link/:linkId/increment-clicks', async (req, res) => {
 // Rota para salvar membro (para PublicRegister)
 app.post('/api/members', async (req, res) => {
   try {
+    console.log('🔍 Debug - POST /api/members chamado');
+    console.log('🔍 Debug - req.body:', req.body);
+    console.log('🔍 Debug - Content-Type:', req.headers['content-type']);
+    
     const {
       name,
       phone,
@@ -1132,15 +1474,19 @@ app.post('/api/members', async (req, res) => {
 
     const insertId = result.insertId;
 
-    res.json({
+    const response = {
       success: true,
       data: {
         id: insertId,
         ...memberData
       }
-    });
+    };
+
+    console.log('🔍 Debug - Resposta POST /api/members:', response);
+    res.json(response);
 
   } catch (error) {
+    console.log('❌ Debug - Erro em POST /api/members:', error);
     res.status(500).json({
       success: false,
       error: error.message
@@ -1466,7 +1812,7 @@ app.post('/api/auth-users/from-member', async (req, res) => {
       full_name: member.name.trim(),
       instagram: member.instagram || null,
       phone: member.phone || null,
-      is_active: false,
+      is_active: true,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
@@ -2098,9 +2444,9 @@ app.post('/api/admin/setup-felipe-admin', async (req, res) => {
       
       // Criar usuário Felipe
       await executeQuery(
-        `INSERT INTO auth_users (username, name, password_hash, role, is_active, created_at) 
+        `INSERT INTO auth_users (username, name, password, role, is_active, created_at) 
          VALUES (?, ?, ?, ?, ?, NOW())`,
-        ['felipe', 'Felipe Admin', '$2b$10$rQZ8Kj9LmNpOqRsTuVwXyO1aBcDeFgHiJkLmNoPqRsTuVwXyO1aBc', 'Felipe Admin', 1]
+        ['felipe', 'Felipe Admin', 'felipe123', 'Felipe Admin', 1]
       )
       
       console.log('✅ Usuário Felipe criado com sucesso!')
@@ -3750,3 +4096,14 @@ if (!process.env.VERCEL) {
 
 // Export para Vercel Serverless Function
 export default app;
+
+// Iniciar o servidor
+app.listen(PORT, () => {
+  console.log(`🚀 Servidor rodando na porta ${PORT}`);
+  console.log(`📡 API disponível em: http://localhost:${PORT}/api`);
+});
+
+// Também exportar como module.exports para compatibilidade
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = app;
+}
