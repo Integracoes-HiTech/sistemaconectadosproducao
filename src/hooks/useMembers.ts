@@ -3,8 +3,22 @@ import { useState, useEffect, useCallback } from 'react'
 import { getMembers, getMemberStats, getSystemSettings, Member, MemberStats, SystemSettings } from '@/lib/database'
 
 // URL base da API - dinâmica para funcionar em desenvolvimento e produção
-const API_BASE_URL = import.meta.env.VITE_API_URL || 
-  (import.meta.env.DEV ? '${API_BASE_URL}' : '/api');
+const getApiBaseUrl = () => {
+  // Se VITE_API_URL estiver definida, usar ela
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  
+  // Se estiver em desenvolvimento, usar localhost
+  if (import.meta.env.DEV) {
+    return 'http://localhost:3001/api';
+  }
+  
+  // Em produção, usar URL relativa
+  return '/api';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 // Re-exportar tipos para uso em outros componentes
 export type { Member, MemberStats, SystemSettings }
